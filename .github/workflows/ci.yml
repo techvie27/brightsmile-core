@@ -1,0 +1,43 @@
+name: CI
+
+on: push
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+
+      - name: Install packages
+        run: composer install --no-progress
+
+      - name: Check PHP syntax
+        run: find . -name "*.php" -not -path "./vendor/*" -print0 | xargs -0 -n1 php -l
+
+      - name: Check coding standard
+        run: vendor/bin/phpcs --standard=WordPress -n --ignore=vendor .
+
+  deploy:
+    needs: check
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build plugin package
+        run: |
+          mkdir brightsmile-core
+          rsync -a --exclude=brightsmile-core --exclude=.git --exclude=.github --exclude=vendor --exclude=composer.json --exclude=composer.lock --exclude=.gitignore ./ brightsmile-core/
+          zip -r brightsmile-core.zip brightsmile-core
+
+      - name: Save package
+        uses: actions/upload-artifact@v4
+        with:
+          name: brightsmile-core-package
+          path: brightsmile-core.zip
