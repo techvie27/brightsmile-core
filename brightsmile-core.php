@@ -45,3 +45,25 @@ function brightsmile_register() {
 	);
 }
 add_action( 'init', 'brightsmile_register' );
+
+/**
+ * Tell ACF to save field groups as JSON files in this plugin.
+ *
+ * @return string Folder path.
+ */
+function brightsmile_acf_json_save_point() {
+	return plugin_dir_path( __FILE__ ) . 'acf-json';
+}
+add_filter( 'acf/settings/save_json', 'brightsmile_acf_json_save_point' );
+
+/**
+ * Tell ACF to also load field groups from the same folder.
+ *
+ * @param array $paths Folders ACF already loads from.
+ * @return array Folders with ours added.
+ */
+function brightsmile_acf_json_load_point( $paths ) {
+	$paths[] = plugin_dir_path( __FILE__ ) . 'acf-json';
+	return $paths;
+}
+add_filter( 'acf/settings/load_json', 'brightsmile_acf_json_load_point' );
