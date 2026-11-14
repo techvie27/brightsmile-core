@@ -127,3 +127,58 @@ function brightsmile_register_appointment_cpt() {
 	register_post_type( 'appointment', $args );
 }
 add_action( 'init', 'brightsmile_register_appointment_cpt' );
+
+/**
+ * Display the appointment booking form.
+ *
+ * @return string
+ */
+function brightsmile_appointment_form_shortcode() {
+	$services = get_posts(
+		array(
+			'post_type'      => 'service',
+			'posts_per_page' => -1,
+		)
+	);
+
+	ob_start();
+	?>
+
+	<form method="post">
+		<p>
+			<label for="brightsmile_name">Name:</label>
+			<input type="text" id="brightsmile_name" name="brightsmile_name">
+		</p>
+
+		<p>
+			<label for="brightsmile_phone">Phone:</label>
+			<input type="tel" id="brightsmile_phone" name="brightsmile_phone">
+		</p>
+
+		<p>
+			<label for="brightsmile_treatment">Treatment:</label>
+			<select id="brightsmile_treatment" name="brightsmile_treatment">
+				<option value="">Select a treatment</option>
+
+				<?php foreach ( $services as $service ) : ?>
+					<option value="<?php echo esc_attr( $service->ID ); ?>">
+						<?php echo esc_html( $service->post_title ); ?>
+					</option>
+				<?php endforeach; ?>
+			</select>
+		</p>
+
+		<p>
+			<label for="brightsmile_date">Preferred date:</label>
+			<input type="date" id="brightsmile_date" name="brightsmile_date">
+		</p>
+
+		<button type="submit" name="brightsmile_submit">
+			Book appointment
+		</button>
+	</form>
+
+	<?php
+	return ob_get_clean();
+}
+add_shortcode( 'brightsmile_appointment_form', 'brightsmile_appointment_form_shortcode' );
