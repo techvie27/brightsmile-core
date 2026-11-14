@@ -102,3 +102,28 @@ function brightsmile_activate() {
 	flush_rewrite_rules();
 }
 register_activation_hook( __FILE__, 'brightsmile_activate' );
+
+
+/**
+ * Register the Appointment custom post type.
+ *
+ * @return void
+ */
+function brightsmile_register_appointment_cpt() {
+	$labels = array(
+		'name'          => __( 'Appointments', 'brightsmile' ),
+		'singular_name' => __( 'Appointment', 'brightsmile' ),
+	);
+
+	$args = array(
+		'labels'        => $labels,
+		'public'        => false,
+		'show_ui'       => true,
+		'show_in_rest'  => false,
+		'supports'      => array( 'title' ),
+		'menu_icon'     => 'dashicons-calendar-alt',
+	);
+
+	register_post_type( 'appointment', $args );
+}
+add_action( 'init', 'brightsmile_register_appointment_cpt' );
