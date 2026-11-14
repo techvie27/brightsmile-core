@@ -134,6 +134,16 @@ add_action( 'init', 'brightsmile_register_appointment_cpt' );
  * @return string
  */
 function brightsmile_appointment_form_shortcode() {
+	$errors = array();
+
+	if ( isset( $_POST['brightsmile_submit'] ) ) {
+		$nonce = isset( $_POST['brightsmile_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['brightsmile_nonce'] ) ) : '';
+
+		if ( ! wp_verify_nonce( $nonce, 'brightsmile_appointment' ) ) {
+			$errors[] = 'Security check failed. Please reload the page and try again.';
+		}
+	}
+
 	$services = get_posts(
 		array(
 			'post_type'      => 'service',
@@ -144,7 +154,17 @@ function brightsmile_appointment_form_shortcode() {
 	ob_start();
 	?>
 
+	<?php if ( ! empty( $errors ) ) : ?>
+		<ul>
+			<?php foreach ( $errors as $error ) : ?>
+				<li><?php echo esc_html( $error ); ?></li>
+			<?php endforeach; ?>
+		</ul>
+	<?php endif; ?>
+
 	<form method="post">
+		<?php wp_nonce_field( 'brightsmile_appointment', 'brightsmile_nonce' ); ?>
+
 		<p>
 			<label for="brightsmile_name">Name:</label>
 			<input type="text" id="brightsmile_name" name="brightsmile_name">
