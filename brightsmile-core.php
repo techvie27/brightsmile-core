@@ -67,3 +67,28 @@ function brightsmile_acf_json_load_point( $paths ) {
 	return $paths;
 }
 add_filter( 'acf/settings/load_json', 'brightsmile_acf_json_load_point' );
+
+
+/**
+ * Register the Doctor custom post type.
+ *
+ * @return void
+ */
+function brightsmile_register_doctor_cpt() {
+	$labels = array(
+		'name'          => __( 'Doctors', 'brightsmile' ),
+		'singular_name' => __( 'Doctor', 'brightsmile' ),
+	);
+
+	$args = array(
+		'labels'        => $labels,
+		'public'        => true,
+		'show_in_rest'  => true,
+		'has_archive'   => false,
+		'supports'      => array( 'title', 'editor', 'thumbnail' ),
+		'menu_icon'     => 'dashicons-id',
+	);
+
+	register_post_type( 'doctor', $args );
+}
+add_action( 'init', 'brightsmile_register_doctor_cpt' );
