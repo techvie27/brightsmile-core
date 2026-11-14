@@ -100,8 +100,56 @@ function brightsmile_activate() {
 	brightsmile_register();
 	brightsmile_register_doctor_cpt();
 	flush_rewrite_rules();
+	add_role(
+		'brightsmile_receptionist',
+		'Receptionist',
+		array(
+			'read'                          => true,
+			'brightsmile_view_appointments' => true,
+		)
+	);
+
+	$brightsmile_admin_role = get_role( 'administrator' );
+	if ( $brightsmile_admin_role ) {
+		$brightsmile_admin_role->add_cap( 'brightsmile_view_appointments' );
+	}
 }
 register_activation_hook( __FILE__, 'brightsmile_activate' );
+
+/**
+ * Add the Appointments page to the admin menu.
+ *
+ * @return void
+ */
+function brightsmile_add_appointments_page() {
+	add_menu_page(
+		'Appointments',
+		'Appointments',
+		'brightsmile_view_appointments',
+		'brightsmile-appointments',
+		'brightsmile_appointments_page_html',
+		'dashicons-calendar-alt',
+		26
+	);
+}
+add_action( 'admin_menu', 'brightsmile_add_appointments_page' );
+
+/**
+ * Show the Appointments admin page.
+ *
+ * @return void
+ */
+function brightsmile_appointments_page_html() {
+	if ( ! current_user_can( 'brightsmile_view_appointments' ) ) {
+		wp_die( esc_html__( 'You are not allowed to view this page.', 'brightsmile' ) );
+	}
+	?>
+	<div class="wrap">
+		<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+		<p>Appointment requests will be listed here.</p>
+	</div>
+	<?php
+}
 
 /**
  * Register the Appointment custom post type.
@@ -121,6 +169,7 @@ function brightsmile_register_appointment_cpt() {
 		'show_in_rest'  => false,
 		'supports'      => array( 'title' ),
 		'menu_icon'     => 'dashicons-calendar-alt',
+		'show_in_menu'  => false,
 	);
 
 	register_post_type( 'appointment', $args );
