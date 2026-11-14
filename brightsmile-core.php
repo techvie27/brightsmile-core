@@ -144,9 +144,52 @@ function brightsmile_appointments_page_html() {
 		wp_die( esc_html__( 'You are not allowed to view this page.', 'brightsmile' ) );
 	}
 	?>
+	<?php
+	$appointments = new WP_Query(
+		array(
+			'post_type'      => 'appointment',
+			'post_status'    => 'publish',
+			'posts_per_page' => 20,
+			'orderby'        => 'date',
+			'order'          => 'DESC',
+		)
+	);
+	?>
 	<div class="wrap">
 		<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-		<p>Appointment requests will be listed here.</p>
+		<table class="widefat striped">
+	<thead>
+		<tr>
+			<th>Name</th>
+			<th>Phone</th>
+			<th>Treatment</th>
+			<th>Preferred date</th>
+		</tr>
+	</thead>
+	<tbody>
+	<?php if ( $appointments->have_posts() ) : ?>
+		<?php
+		while ( $appointments->have_posts() ) :
+			$appointments->the_post();
+			$phone     = get_post_meta( get_the_ID(), 'appointment_phone', true );
+			$treatment = get_post_meta( get_the_ID(), 'appointment_treatment', true );
+			$date      = get_post_meta( get_the_ID(), 'appointment_date', true );
+			?>
+			<tr>
+				<td><?php echo esc_html( get_the_title() ); ?></td>
+				<td><?php echo esc_html( $phone ); ?></td>
+				<td><?php echo esc_html( get_the_title( (int) $treatment ) ); ?></td>
+				<td><?php echo esc_html( $date ); ?></td>
+			</tr>
+		<?php endwhile; ?>
+		<?php wp_reset_postdata(); ?>
+	<?php else : ?>
+		<tr>
+			<td colspan="4">No appointment requests yet.</td>
+		</tr>
+	<?php endif; ?>
+	</tbody>
+</table>
 	</div>
 	<?php
 }
