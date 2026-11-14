@@ -366,3 +366,66 @@ function brightsmile_appointment_form_shortcode() {
 	return ob_get_clean();
 }
 add_shortcode( 'brightsmile_appointment_form', 'brightsmile_appointment_form_shortcode' );
+
+/**
+ * Get a dental tip from the external API.
+ *
+ * @return string
+ */
+function brightsmile_get_dental_tip() {
+	$fallback = 'Brush your teeth twice a day for two minutes.';
+
+	$cached_tip = get_transient( 'brightsmile_dental_tip' );
+
+	if ( false !== $cached_tip ) {
+		return $cached_tip;
+	}
+
+	$response = wp_remote_get(
+		'https://jsonplaceholder.typicode.com/posts/1',
+		array(
+			'timeout' => 5,
+		)
+	);
+
+	if ( is_wp_error( $response ) ) {
+		return $fallback;
+	}
+
+	if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
+		return $fallback;
+	}
+
+	$body = wp_remote_retrieve_body( $response );
+	$data = json_decode( $body, true );
+
+	if ( ! is_array( $data ) || ! isset( $data['title'] ) ) {
+		return $fallback;
+	}
+
+	$tip = sanitize_text_field( $data['title'] );
+
+	set_transient( 'brightsmile_dental_tip', $tip, 12 * HOUR_IN_SECONDS );
+
+	return $tip;
+}
+
+/**
+ * Display the dental tip shortcode.
+ *
+ * @return string
+ */
+function brightsmile_dental_tip_shortcode() {
+	$tip = brightsmile_get_dental_tip();
+
+	ob_start();
+	?>
+	<div class="brightsmile-tip">
+		<h3>Dental Tip</h3>
+		<p><?php echo esc_html( $tip ); ?></p>
+	</div>
+	<?php
+
+	return ob_get_clean();
+}
+add_shortcode( 'brightsmile_dental_tip', 'brightsmile_dental_tip_shortcode' );
