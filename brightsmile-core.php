@@ -103,7 +103,6 @@ function brightsmile_activate() {
 }
 register_activation_hook( __FILE__, 'brightsmile_activate' );
 
-
 /**
  * Register the Appointment custom post type.
  *
@@ -135,6 +134,7 @@ add_action( 'init', 'brightsmile_register_appointment_cpt' );
  */
 function brightsmile_appointment_form_shortcode() {
 	$errors = array();
+	$saved  = false;
 
 	$values = array(
 		'name'      => '',
@@ -169,7 +169,33 @@ function brightsmile_appointment_form_shortcode() {
 			if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $values['date'] ) || strtotime( $values['date'] ) < strtotime( 'today' ) ) {
 				$errors[] = 'Please choose a date that is today or later.';
 			}
+
+			if ( empty( $errors ) ) {
+				$post_id = wp_insert_post(
+					array(
+						'post_type'   => 'appointment',
+						'post_title'  => $values['name'],
+						'post_status' => 'publish',
+						'meta_input'  => array(
+							'appointment_phone'     => $values['phone'],
+							'appointment_treatment' => $values['treatment'],
+							'appointment_date'      => $values['date'],
+						),
+					),
+					true
+				);
+
+				if ( is_wp_error( $post_id ) ) {
+					$errors[] = 'Sorry, we could not save your request. Please call the clinic.';
+				} else {
+					$saved = true;
+				}
+			}
 		}
+	}
+
+	if ( $saved ) {
+		return '<p>' . esc_html( 'Thank you! We have received your request and will call you soon.' ) . '</p>';
 	}
 
 	$services = get_posts(
