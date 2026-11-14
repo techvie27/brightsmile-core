@@ -92,3 +92,13 @@ function brightsmile_register_doctor_cpt() {
 	register_post_type( 'doctor', $args );
 }
 add_action( 'init', 'brightsmile_register_doctor_cpt' );
+
+/**
+ * Flush permalinks when the plugin is activated.
+ */
+function brightsmile_activate() {
+	brightsmile_register();
+	brightsmile_register_doctor_cpt();
+	flush_rewrite_rules();
+}
+register_activation_hook( __FILE__, 'brightsmile_activate' );
