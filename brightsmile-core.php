@@ -136,11 +136,39 @@ add_action( 'init', 'brightsmile_register_appointment_cpt' );
 function brightsmile_appointment_form_shortcode() {
 	$errors = array();
 
+	$values = array(
+		'name'      => '',
+		'phone'     => '',
+		'treatment' => 0,
+		'date'      => '',
+	);
+
 	if ( isset( $_POST['brightsmile_submit'] ) ) {
 		$nonce = isset( $_POST['brightsmile_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['brightsmile_nonce'] ) ) : '';
 
 		if ( ! wp_verify_nonce( $nonce, 'brightsmile_appointment' ) ) {
 			$errors[] = 'Security check failed. Please reload the page and try again.';
+		} else {
+			$values['name']      = isset( $_POST['brightsmile_name'] ) ? sanitize_text_field( wp_unslash( $_POST['brightsmile_name'] ) ) : '';
+			$values['phone']     = isset( $_POST['brightsmile_phone'] ) ? sanitize_text_field( wp_unslash( $_POST['brightsmile_phone'] ) ) : '';
+			$values['treatment'] = isset( $_POST['brightsmile_treatment'] ) ? absint( $_POST['brightsmile_treatment'] ) : 0;
+			$values['date']      = isset( $_POST['brightsmile_date'] ) ? sanitize_text_field( wp_unslash( $_POST['brightsmile_date'] ) ) : '';
+
+			if ( '' === $values['name'] ) {
+				$errors[] = 'Please enter your name.';
+			}
+
+			if ( ! preg_match( '/^[0-9+\-\s]{7,15}$/', $values['phone'] ) ) {
+				$errors[] = 'Please enter a valid phone number (7 to 15 digits).';
+			}
+
+			if ( 'service' !== get_post_type( $values['treatment'] ) ) {
+				$errors[] = 'Please choose a treatment.';
+			}
+
+			if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $values['date'] ) || strtotime( $values['date'] ) < strtotime( 'today' ) ) {
+				$errors[] = 'Please choose a date that is today or later.';
+			}
 		}
 	}
 
@@ -167,12 +195,22 @@ function brightsmile_appointment_form_shortcode() {
 
 		<p>
 			<label for="brightsmile_name">Name:</label>
-			<input type="text" id="brightsmile_name" name="brightsmile_name">
+			<input
+				type="text"
+				id="brightsmile_name"
+				name="brightsmile_name"
+				value="<?php echo esc_attr( $values['name'] ); ?>"
+			>
 		</p>
 
 		<p>
 			<label for="brightsmile_phone">Phone:</label>
-			<input type="tel" id="brightsmile_phone" name="brightsmile_phone">
+			<input
+				type="tel"
+				id="brightsmile_phone"
+				name="brightsmile_phone"
+				value="<?php echo esc_attr( $values['phone'] ); ?>"
+			>
 		</p>
 
 		<p>
@@ -181,7 +219,10 @@ function brightsmile_appointment_form_shortcode() {
 				<option value="">Select a treatment</option>
 
 				<?php foreach ( $services as $service ) : ?>
-					<option value="<?php echo esc_attr( $service->ID ); ?>">
+					<option
+						value="<?php echo esc_attr( $service->ID ); ?>"
+						<?php selected( $values['treatment'], $service->ID ); ?>
+					>
 						<?php echo esc_html( $service->post_title ); ?>
 					</option>
 				<?php endforeach; ?>
@@ -190,7 +231,12 @@ function brightsmile_appointment_form_shortcode() {
 
 		<p>
 			<label for="brightsmile_date">Preferred date:</label>
-			<input type="date" id="brightsmile_date" name="brightsmile_date">
+			<input
+				type="date"
+				id="brightsmile_date"
+				name="brightsmile_date"
+				value="<?php echo esc_attr( $values['date'] ); ?>"
+			>
 		</p>
 
 		<button type="submit" name="brightsmile_submit">
