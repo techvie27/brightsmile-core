@@ -260,6 +260,8 @@ function brightsmile_appointment_form_shortcode() {
 
 			if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $values['date'] ) || strtotime( $values['date'] ) < strtotime( 'today' ) ) {
 				$errors[] = 'Please choose a date that is today or later.';
+			} elseif ( ! checkdate( (int) substr( $values['date'], 5, 2 ), (int) substr( $values['date'], 8, 2 ), (int) substr( $values['date'], 0, 4 ) ) ) {
+				$errors[] = 'Please choose a real date.';
 			}
 
 			if ( empty( $errors ) ) {
