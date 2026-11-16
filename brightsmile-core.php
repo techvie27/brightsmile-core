@@ -429,3 +429,53 @@ function brightsmile_dental_tip_shortcode() {
 	return ob_get_clean();
 }
 add_shortcode( 'brightsmile_dental_tip', 'brightsmile_dental_tip_shortcode' );
+
+/**
+ * Register the BrightSmile REST API routes.
+ *
+ * @return void
+ */
+function brightsmile_register_rest_routes() {
+	register_rest_route(
+		'brightsmile/v1',
+		'/services',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'brightsmile_rest_get_services',
+			'permission_callback' => '__return_true',
+		)
+	);
+}
+add_action( 'rest_api_init', 'brightsmile_register_rest_routes' );
+
+/**
+ * Get published services for the REST API.
+ *
+ * @return WP_REST_Response
+ */
+function brightsmile_rest_get_services() {
+	$services = new WP_Query(
+		array(
+			'post_type'      => 'service',
+			'posts_per_page' => 50,
+			'post_status'    => 'publish',
+		)
+	);
+
+	$items = array();
+
+	while ( $services->have_posts() ) {
+		$services->the_post();
+
+		$items[] = array(
+			'id'    => get_the_ID(),
+			'title' => get_the_title(),
+			'price' => get_field( 'service_price' ),
+			'link'  => get_permalink(),
+		);
+	}
+
+	wp_reset_postdata();
+
+	return rest_ensure_response( $items );
+}
