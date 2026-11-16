@@ -445,33 +445,55 @@ function brightsmile_register_rest_routes() {
 			'permission_callback' => '__return_true',
 		)
 	);
+
+	register_rest_route(
+		'brightsmile/v1',
+		'/appointments',
+		array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'brightsmile_rest_get_appointments',
+			'permission_callback' => 'brightsmile_rest_appointments_permission',
+		)
+	);
 }
 add_action( 'rest_api_init', 'brightsmile_register_rest_routes' );
 
 /**
- * Get published services for the REST API.
+ * Check whether the current user can view appointments.
+ *
+ * @return bool
+ */
+function brightsmile_rest_appointments_permission() {
+	return current_user_can( 'manage_options' );
+}
+
+/**
+ * Get appointments for the REST API.
  *
  * @return WP_REST_Response
  */
-function brightsmile_rest_get_services() {
-	$services = new WP_Query(
+function brightsmile_rest_get_appointments() {
+	$appointments = new WP_Query(
 		array(
-			'post_type'      => 'service',
-			'posts_per_page' => 50,
+			'post_type'      => 'appointment',
+			'posts_per_page' => 20,
 			'post_status'    => 'publish',
+			'orderby'        => 'date',
+			'order'          => 'DESC',
 		)
 	);
 
 	$items = array();
 
-	while ( $services->have_posts() ) {
-		$services->the_post();
+	while ( $appointments->have_posts() ) {
+		$appointments->the_post();
 
 		$items[] = array(
-			'id'    => get_the_ID(),
-			'title' => get_the_title(),
-			'price' => get_field( 'service_price' ),
-			'link'  => get_permalink(),
+			'id'        => get_the_ID(),
+			'name'      => get_the_title(),
+			'phone'     => get_post_meta( get_the_ID(), 'appointment_phone', true ),
+			'treatment' => get_post_meta( get_the_ID(), 'appointment_treatment', true ),
+			'date'      => get_post_meta( get_the_ID(), 'appointment_date', true ),
 		);
 	}
 
