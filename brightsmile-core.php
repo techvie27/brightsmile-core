@@ -220,13 +220,40 @@ function brightsmile_register_appointment_cpt() {
 add_action( 'init', 'brightsmile_register_appointment_cpt' );
 
 /**
- * Display the appointment booking form.
+ * Hold the form errors and typed values for this page load.
  *
- * @return string
+ * @param array|null $new_state New state to store, or null to only read it.
+ * @return array
  */
-function brightsmile_appointment_form_shortcode() {
+function brightsmile_appointment_state( $new_state = null ) {
+	static $state = array(
+		'errors' => array(),
+		'values' => array(
+			'name'      => '',
+			'phone'     => '',
+			'treatment' => 0,
+			'date'      => '',
+		),
+	);
+
+	if ( null !== $new_state ) {
+		$state = $new_state;
+	}
+
+	return $state;
+}
+
+/**
+ * Handle the appointment form before any page output starts.
+ *
+ * @return void
+ */
+function brightsmile_handle_appointment_form() {
+	if ( ! isset( $_POST['brightsmile_submit'] ) ) {
+		return;
+	}
+
 	$errors = array();
-	$saved  = false;
 
 	$values = array(
 		'name'      => '',
@@ -235,60 +262,84 @@ function brightsmile_appointment_form_shortcode() {
 		'date'      => '',
 	);
 
-	if ( isset( $_POST['brightsmile_submit'] ) ) {
-		$nonce = isset( $_POST['brightsmile_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['brightsmile_nonce'] ) ) : '';
+	$nonce = isset( $_POST['brightsmile_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['brightsmile_nonce'] ) ) : '';
 
-		if ( ! wp_verify_nonce( $nonce, 'brightsmile_appointment' ) ) {
-			$errors[] = 'Security check failed. Please reload the page and try again.';
-		} else {
-			$values['name']      = isset( $_POST['brightsmile_name'] ) ? sanitize_text_field( wp_unslash( $_POST['brightsmile_name'] ) ) : '';
-			$values['phone']     = isset( $_POST['brightsmile_phone'] ) ? sanitize_text_field( wp_unslash( $_POST['brightsmile_phone'] ) ) : '';
-			$values['treatment'] = isset( $_POST['brightsmile_treatment'] ) ? absint( $_POST['brightsmile_treatment'] ) : 0;
-			$values['date']      = isset( $_POST['brightsmile_date'] ) ? sanitize_text_field( wp_unslash( $_POST['brightsmile_date'] ) ) : '';
+	if ( ! wp_verify_nonce( $nonce, 'brightsmile_appointment' ) ) {
+		$errors[] = 'Security check failed. Please reload the page and try again.';
+	} else {
+		$values['name']      = isset( $_POST['brightsmile_name'] ) ? sanitize_text_field( wp_unslash( $_POST['brightsmile_name'] ) ) : '';
+		$values['phone']     = isset( $_POST['brightsmile_phone'] ) ? sanitize_text_field( wp_unslash( $_POST['brightsmile_phone'] ) ) : '';
+		$values['treatment'] = isset( $_POST['brightsmile_treatment'] ) ? absint( $_POST['brightsmile_treatment'] ) : 0;
+		$values['date']      = isset( $_POST['brightsmile_date'] ) ? sanitize_text_field( wp_unslash( $_POST['brightsmile_date'] ) ) : '';
 
-			if ( '' === $values['name'] ) {
-				$errors[] = 'Please enter your name.';
-			}
+		if ( '' === $values['name'] ) {
+			$errors[] = 'Please enter your name.';
+		}
 
-			if ( ! preg_match( '/^[0-9+\-\s]{7,15}$/', $values['phone'] ) ) {
-				$errors[] = 'Please enter a valid phone number (7 to 15 digits).';
-			}
+		if ( ! preg_match( '/^[0-9+\-\s]{7,15}$/', $values['phone'] ) ) {
+			$errors[] = 'Please enter a valid phone number (7 to 15 digits).';
+		}
 
-			if ( 'service' !== get_post_type( $values['treatment'] ) ) {
-				$errors[] = 'Please choose a treatment.';
-			}
+		if ( 'service' !== get_post_type( $values['treatment'] ) ) {
+			$errors[] = 'Please choose a treatment.';
+		}
 
-			if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $values['date'] ) || strtotime( $values['date'] ) < strtotime( 'today' ) ) {
-				$errors[] = 'Please choose a date that is today or later.';
-			} elseif ( ! checkdate( (int) substr( $values['date'], 5, 2 ), (int) substr( $values['date'], 8, 2 ), (int) substr( $values['date'], 0, 4 ) ) ) {
-				$errors[] = 'Please choose a real date.';
-			}
+		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $values['date'] ) || strtotime( $values['date'] ) < strtotime( 'today' ) ) {
+			$errors[] = 'Please choose a date that is today or later.';
+		} elseif ( ! checkdate( (int) substr( $values['date'], 5, 2 ), (int) substr( $values['date'], 8, 2 ), (int) substr( $values['date'], 0, 4 ) ) ) {
+			$errors[] = 'Please choose a real date.';
+		}
 
-			if ( empty( $errors ) ) {
-				$post_id = wp_insert_post(
-					array(
-						'post_type'   => 'appointment',
-						'post_title'  => $values['name'],
-						'post_status' => 'publish',
-						'meta_input'  => array(
-							'appointment_phone'     => $values['phone'],
-							'appointment_treatment' => $values['treatment'],
-							'appointment_date'      => $values['date'],
-						),
+		if ( empty( $errors ) ) {
+			$post_id = wp_insert_post(
+				array(
+					'post_type'   => 'appointment',
+					'post_title'  => $values['name'],
+					'post_status' => 'publish',
+					'meta_input'  => array(
+						'appointment_phone'     => $values['phone'],
+						'appointment_treatment' => $values['treatment'],
+						'appointment_date'      => $values['date'],
 					),
-					true
-				);
+				),
+				true
+			);
 
-				if ( is_wp_error( $post_id ) ) {
-					$errors[] = 'Sorry, we could not save your request. Please call the clinic.';
-				} else {
-					$saved = true;
+			if ( is_wp_error( $post_id ) ) {
+				$errors[] = 'Sorry, we could not save your request. Please call the clinic.';
+			} else {
+				$redirect_url = get_permalink( get_queried_object_id() );
+
+				if ( ! $redirect_url ) {
+					$redirect_url = home_url( '/' );
 				}
+
+				wp_safe_redirect( add_query_arg( 'booked', '1', $redirect_url ) );
+				exit;
 			}
 		}
 	}
 
-	if ( $saved ) {
+	brightsmile_appointment_state(
+		array(
+			'errors' => $errors,
+			'values' => $values,
+		)
+	);
+}
+add_action( 'template_redirect', 'brightsmile_handle_appointment_form' );
+
+/**
+ * Display the appointment booking form.
+ *
+ * @return string
+ */
+function brightsmile_appointment_form_shortcode() {
+	$state  = brightsmile_appointment_state();
+	$errors = $state['errors'];
+	$values = $state['values'];
+
+	if ( isset( $_GET['booked'] ) && '1' === $_GET['booked'] ) {
 		return '<p>' . esc_html( 'Thank you! We have received your request and will call you soon.' ) . '</p>';
 	}
 
